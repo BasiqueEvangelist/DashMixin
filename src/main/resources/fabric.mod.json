@@ -1,0 +1,25 @@
+{
+    "schemaVersion": 1,
+    "id": "dashmixin",
+    "version": "${version}",
+    "name": "DashMixin",
+    "description": "Cache mixin for cash money",
+    "authors": [
+        "BasiqueEvangelist"
+    ],
+    "contact": {
+        "repo": "https://github.com/BasiqueEvangelist/DashMixin"
+    },
+    "license": "LGPL-3.0",
+    "icon": "assets/dashmixin/icon.png",
+    "environment": "*",
+    "entrypoints": {},
+    "mixins": [
+        "dashmixin.mixins.json"
+    ],
+    "depends": {
+        "fabricloader": ">=0.14.12",
+        "fabric": "*",
+        "minecraft": "1.19.3"
+    }
+}
