@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import java.io.File;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
-import java.lang.instrument.UnmodifiableClassException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,25 +25,29 @@ public class DashMixinPlugin implements IMixinConfigPlugin {
         try {
             Instrumentation instrumentation = Reflect.instrument().value();
 
+            tryAddClassToPlatformClassLoader(instrumentation, DashMixinPlugin.class);
+            tryAddClassToPlatformClassLoader(instrumentation, Reflect.class);
+
+            Class.forName(
+                "me.basiqueevangelist.dashmixin.DashMixinInit",
+                true,
+                ClassLoader.getSystemClassLoader()
+            )
+                .getMethod("init", ClassLoader.class)
+                .invoke(null, DashMixinPlugin.class.getClassLoader());
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void tryAddClassToPlatformClassLoader(Instrumentation instrumentation, Class<?> klass) {
+        try {
             var path = new File(DashMixinPlugin.class.getProtectionDomain().getCodeSource().getLocation().toURI())
                 .toPath();
 
             if (Files.isRegularFile(path))
                 instrumentation.appendToSystemClassLoaderSearch(new JarFile(path.toFile()));
-
-            Class.forName(
-                "me.basiqueevangelist.dashmixin.ClassDumpLoader",
-                true,
-                ClassLoader.getSystemClassLoader()
-            );
-
-            var transformer = new KnotClassDelegateTransformer();
-            instrumentation.addTransformer(transformer, true);
-            instrumentation.retransformClasses(Class.forName("net.fabricmc.loader.impl.launch.knot.KnotClassDelegate"));
-            instrumentation.removeTransformer(transformer);
-
-            instrumentation.addTransformer(new ClassSaverTransformer());
-        } catch (IOException | URISyntaxException | ClassNotFoundException | UnmodifiableClassException e) {
+        } catch (URISyntaxException | IOException e) {
             throw new RuntimeException(e);
         }
     }

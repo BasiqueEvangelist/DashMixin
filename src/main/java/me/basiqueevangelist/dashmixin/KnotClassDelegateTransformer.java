@@ -6,6 +6,8 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.ProtectionDomain;
 import java.util.Objects;
 
@@ -39,19 +41,24 @@ public class KnotClassDelegateTransformer implements ClassTransformer {
                 liste.add(new InsnNode(Opcodes.DUP));
                 LabelNode label = new LabelNode();
                 liste.add(new JumpInsnNode(Opcodes.IFNULL, label));
+                liste.add(new VarInsnNode(Opcodes.ALOAD, 3));
+                liste.add(new InsnNode(Opcodes.MONITOREXIT));
                 liste.add(new InsnNode(Opcodes.ARETURN));
                 liste.add(label);
 
-                m.instructions.insert(liste);
+                for (var insn : m.instructions) {
+                    if (insn instanceof MethodInsnNode methodInsn && methodInsn.name.equals("findLoadedClassFwd"))
+                        m.instructions.insert(insn, liste);
+                }
             }
 
             ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
             node.accept(cw);
             byte[] bytes = cw.toByteArray();
 
-//            if (true) {
-//                Files.write(Path.of("KnotClassDelegate.class"), bytes);
-//            }
+            if (Boolean.getBoolean("dashmixin.dumpKnotClassDelegate")) {
+                Files.write(Path.of("KnotClassDelegate.class"), bytes);
+            }
 
             return bytes;
         } catch (Exception e) {
